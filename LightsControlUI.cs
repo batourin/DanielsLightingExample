@@ -18,18 +18,6 @@ namespace Daniels.PrincipalHall.Lighting
         private List<LightGroup> _stageLights;
         private LightGroup _ptzLights;
 
-
-        /// <summary>
-        /// Enumeration of the UI SubPage ids in the project.
-        /// </summary>
-        private enum eUISubPageIds : uint
-        {
-            PTZExtendedControl = 107,
-            PTZExtendedControlTranzition = 107,
-            PresetName = 120,
-            PresetNameTranzition = 120,
-        }
-
         /// <summary>
         /// Enumeration of the UI smart object ids in the project.
         /// </summary>
@@ -124,19 +112,15 @@ namespace Daniels.PrincipalHall.Lighting
             StringStep = 20,
         }
 
-        private enum ePTZExtendedSubPageJoins : uint
+        private SubPageParameters ptzExtendedSubPageParameters = new SubPageParameters()
         {
-            // Boolean
-            Close = 1,
-            // Analog
-
-            // Text
-
-            // SLR Steps
+            VisibilityJoin = 107,
+            TransitionJoin = 107,
+            CloseJoins = new List<uint>(1) { 1 },
             BooleanOffset = 700,
-            UShortOffset = 700,
-            StringOffset = 700,
-        }
+            AnalogOffset = 700,
+            SerialOffset = 700,
+        };
 
         private enum ePresetsSLRJoins : uint
         {
@@ -156,20 +140,17 @@ namespace Daniels.PrincipalHall.Lighting
             StringStep = 10,
         }
 
-        private enum eNameSubPageJoins : uint
+        private const uint nameSubPageOK = 1;
+        private TextEntrySubPageParameters nameSubPageParameters = new TextEntrySubPageParameters()
         {
-            // Boolean
-            OK = 1,
-            Cancel = 2,
-            // Analog
-            // Text
-            Text = 1,
-
-            // SLR Steps
+            VisibilityJoin = 120,
+            TransitionJoin = 120,
+            CloseJoins = new List<uint>(2) { nameSubPageOK, 2 },
+            TextEntryJoin = 1,
             BooleanOffset = 2000,
-            UShortOffset = 2000,
-            StringOffset = 2000,
-        }
+            AnalogOffset = 2000,
+            SerialOffset = 2000,
+        };
 
         private UISLRHelper _stageMasterSLR = new UISLRHelper((uint)eUISmartObjectIds.StageMasters, (uint)eMastersSLRJoins.BooleanStep, (uint)eMastersSLRJoins.UShortStep, (uint)eMastersSLRJoins.StringStep);
         private UISLRHelper _stageIndividualSLR = new UISLRHelper((uint)eUISmartObjectIds.StageIndividuals, (uint)eIndividualSLRJoins.BooleanStep, (uint)eIndividualSLRJoins.UShortStep, (uint)eIndividualSLRJoins.StringStep);
@@ -189,8 +170,10 @@ namespace Daniels.PrincipalHall.Lighting
             {
                 panel.UserSpecifiedObject = new SubPageManager(panel, new List<SubPage>()
                 {
-                    new SubPage((uint)eUISubPageIds.PTZExtendedControl, (uint)eUISubPageIds.PTZExtendedControlTranzition, new List<uint>(){(uint)ePTZExtendedSubPageJoins.Close}, (uint)ePTZExtendedSubPageJoins.BooleanOffset, (uint)ePTZExtendedSubPageJoins.UShortOffset, (uint)ePTZExtendedSubPageJoins.StringOffset),
-                    new TextEntrySubPage((uint)eUISubPageIds.PresetName, (uint)eUISubPageIds.PresetNameTranzition, (uint)eNameSubPageJoins.Text, new List<uint>(){(uint)eNameSubPageJoins.OK, (uint)eNameSubPageJoins.Cancel}, (uint)eNameSubPageJoins.BooleanOffset, (uint)eNameSubPageJoins.UShortOffset, (uint)eNameSubPageJoins.StringOffset),
+                    new SubPage(ptzExtendedSubPageParameters),
+                    //new SubPage((uint)eUISubPageIds.PTZExtendedControl, (uint)eUISubPageIds.PTZExtendedControlTranzition, new List<uint>(){(uint)ePTZExtendedSubPageJoins.Close}, (uint)ePTZExtendedSubPageJoins.BooleanOffset, (uint)ePTZExtendedSubPageJoins.UShortOffset, (uint)ePTZExtendedSubPageJoins.StringOffset),
+                    new TextEntrySubPage(nameSubPageParameters),
+                    //new TextEntrySubPage((uint)eUISubPageIds.PresetName, (uint)eUISubPageIds.PresetNameTranzition, (uint)eNameSubPageJoins.Text, new List<uint>(){(uint)eNameSubPageJoins.OK, (uint)eNameSubPageJoins.Cancel}, (uint)eNameSubPageJoins.BooleanOffset, (uint)eNameSubPageJoins.UShortOffset, (uint)eNameSubPageJoins.StringOffset),
                 });
             }
         }
@@ -339,7 +322,7 @@ namespace Daniels.PrincipalHall.Lighting
                         if (x)
                         {
                             SubPageManager manager = panelFix.UserSpecifiedObject as SubPageManager;
-                            manager[(uint)eUISubPageIds.PTZExtendedControl].Visible = true;
+                            manager[ptzExtendedSubPageParameters.VisibilityJoin].Visible = true;
                         }
                     });
                     ptzMasterSO.BooleanOutput[_ptzMasterSLR.BooleanOutput(1, (uint)eMastersSLRJoins.Toggle)].UserObject = new Action<bool>(x => { if (x) _ptzLights.Muted = !_ptzLights.Muted; });
@@ -971,7 +954,7 @@ namespace Daniels.PrincipalHall.Lighting
 
             BasicTriListWithSmartObject panel = presetSO.Device as BasicTriListWithSmartObject;
             SubPageManager manager = panel.UserSpecifiedObject as SubPageManager;
-            TextEntrySubPage textEntrySubPage = manager[(uint)eUISubPageIds.PresetName] as TextEntrySubPage;
+            TextEntrySubPage textEntrySubPage = manager[nameSubPageParameters.VisibilityJoin] as TextEntrySubPage;
             presetSO.BooleanOutput[_stagePresetsSLR.BooleanOutput(presetIndex + 1, (uint)ePresetsSLRJoins.Selected)].UserObject = new Action<bool>(x =>
             {
                 if (x)
@@ -995,7 +978,7 @@ namespace Daniels.PrincipalHall.Lighting
                         textEntrySubPage.Text = String.Empty;
                         textEntrySubPage.ShowModal((sender, args) =>
                         {
-                            if (args.CloseReason == (uint)eNameSubPageJoins.OK)
+                            if (args.CloseReason == nameSubPageOK)
                             {
                                 TextEntrySubPage subPage = sender as TextEntrySubPage;
                                 //CrestronConsole.PrintLine("PresetName:{0} for {1}", subPage.Text, selectedLightMaster.Name);
@@ -1049,7 +1032,7 @@ namespace Daniels.PrincipalHall.Lighting
 
             BasicTriList panel = presetSO.Device as BasicTriList;
             SubPageManager manager = panel.UserSpecifiedObject as SubPageManager;
-            TextEntrySubPage textEntrySubPage = manager[(uint)eUISubPageIds.PresetName] as TextEntrySubPage;
+            TextEntrySubPage textEntrySubPage = manager[nameSubPageParameters.VisibilityJoin] as TextEntrySubPage;
             presetSO.BooleanOutput[_ptzVPresetsSLR.BooleanOutput(presetIndex + 1, (uint)ePresetsSLRJoins.Selected)].UserObject = new Action<bool>(x =>
             {
                 if (x)
@@ -1057,7 +1040,7 @@ namespace Daniels.PrincipalHall.Lighting
                     textEntrySubPage.Text = String.Empty;
                     textEntrySubPage.ShowModal((sender, args) =>
                         {
-                            if (args.CloseReason == (uint)eNameSubPageJoins.OK)
+                            if (args.CloseReason == nameSubPageOK)
                             {
                                 TextEntrySubPage subPage = sender as TextEntrySubPage;
                                 //CrestronConsole.PrintLine("PresetName:{0} for {1}", subPage.Text, lightMaster.Name);
